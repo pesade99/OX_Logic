@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+  <title>속성 분류기 코딩 게임 🤖</title>
+  <style>
+    @font-face {
+      font-family: 'Jua';
+      src: url('./Jua-Regular.ttf') format('truetype'),
+           url('./Jua.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    :root {
+      --bg: #e8f4fc;
+      --machine-blue: #5b92d6;
+      --machine-border: #3b6ea8;
+      --accent-yellow: #feca57;
+      --accent-green: #10ac84;
+      --accent-red: #ff4757;
+      --card-bg: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+      font-family: 'Jua', 'Apple SD Gothic Neo', system-ui, sans-serif;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(1100px 520px at 20% -10%, rgba(255,255,255,.65), transparent 60%),
+                  radial-gradient(1000px 520px at 90% 0%, rgba(255,255,255,.5), transparent 60%),
+                  linear-gradient(180deg, #9fd0f0, #bfe8ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stage {
+      width: 100vw;
+      height: 100vh;
+      max-width: 1100px;
+      padding: clamp(6px, 1vh, 12px) clamp(10px, 1.5vw, 20px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+      overflow: hidden;
+      gap: clamp(4px, 0.8vh, 8px);
+    }
+
+    /* 🏫 상단 타이틀 & 1~5단계 버튼 바 */
+    .top-bar {
+      background: #FFFFFF;
+      border-radius: 12px;
+      padding: 4px 14px;
+      box-shadow: 0 3px 8px rgba(0,0,0,.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+      height: clamp(38px, 5.5vh, 46px);
+    }
+    .game-title {
+      font-size: clamp(15px, 2.3vh, 19px);
+      font-weight: 900;
+      color: #2c3e50;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .level-tabs {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .level-btn {
+      appearance: none;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+      color: #64748b;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: clamp(12px, 1.8vh, 15px);
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .level-btn.active {
+      background: #FF6B8B;
+      border-color: #FF6B8B;
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(255, 107, 139, 0.35);
+    }
+
+    /* 📋 [두껍게 확장] 상단 들어가는 후보 동물들 (7종) */
+    .pool-card {
+      background: rgba(255, 255, 255, 0.94);
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.9);
+      padding: 6px 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+      height: clamp(90px, 14vh, 118px);
+    }
+    .pool-label {
+      font-size: clamp(14px, 2.1vh, 17px);
+      color: #1e293b;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .pool-items {
+      display: flex;
+      gap: clamp(8px, 1.2vw, 16px);
+      align-items: center;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      flex: 1;
+      justify-content: space-around;
+    }
+    .pool-item-chip {
+      background: #FFFDF0;
+      border: 2px solid #FFE4E8;
+      border-radius: 12px;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: clamp(13px, 1.9vh, 15px);
+      font-weight: 900;
+      white-space: nowrap;
+      min-width: clamp(68px, 9vw, 92px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+    }
+    .pool-item-img {
+      width: clamp(52px, 7.8vh, 74px);
+      height: clamp(52px, 7.8vh, 74px);
+      object-fit: contain;
+    }
+    .attr-fallback-emoji {
+      font-size: clamp(30px, 4.5vh, 40px);
+      display: none;
+    }
+
+    /* 🤖 중앙 분류기 머신 */
+    .machine-wrapper {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 100%;
+      margin: -2px 0;
+    }
+
+    .machine-frame {
+      width: min(100%, 780px);
+      height: 100%;
+      max-height: 240px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .machine-svg-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* 기계 화면 내부: 속성 아이콘과 OX 버튼 */
+    .machine-screen-content {
+      position: relative;
+      z-index: 2;
+      width: 86%;
+      height: 80%;
+      background: #FFFFFF;
+      border-radius: 16px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.12);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 6px 10px;
+      gap: 8px;
+    }
+
+    .attr-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    .attr-icon-box {
+      width: clamp(50px, 7.2vh, 68px);
+      height: clamp(50px, 7.2vh, 68px);
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .attr-icon-img {
+      width: 82%;
+      height: 82%;
+      object-fit: contain;
+    }
+    .attr-label {
+      font-size: clamp(14px, 2.1vh, 17px);
+      font-weight: 900;
+      color: #1e293b;
+    }
+
+    .ox-btn-group {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      justify-content: center;
+    }
+    .ox-btn {
+      appearance: none;
+      border: 2px solid #cbd5e1;
+      background: #ffffff;
+      color: #64748b;
+      width: clamp(34px, 4.8vh, 46px);
+      height: clamp(28px, 4.2vh, 38px);
+      border-radius: 8px;
+      font-size: clamp(16px, 2.4vh, 20px);
+      font-weight: 1000;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+    .ox-btn:active {
+      transform: scale(0.92);
+    }
+    .ox-btn.btn-o.active {
+      background: #e8f8f5;
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+      box-shadow: 0 0 10px rgba(16, 172, 132, 0.4);
+    }
+    .ox-btn.btn-x.active {
+      background: #ffebee;
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+      box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
+    }
+
+    /* 🎯 [두껍게 확장] 하단 통과된 친구들 (목표 패널) */
+    .mission-card {
+      background: #FFFFFF;
+      border: 2px solid #FFCCD5;
+      border-radius: 14px;
+      padding: 6px 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.06);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+      height: clamp(96px, 15vh, 126px);
+      justify-content: center;
+    }
+    .mission-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .mission-title {
+      font-size: clamp(13px, 2vh, 16px);
+      font-weight: 900;
+      color: #e84118;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .answer-counter-badge {
+      background: #FFF8E7;
+      border: 1.5px solid #FED330;
+      color: #D35400;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: clamp(12px, 1.8vh, 14px);
+      font-weight: 900;
+    }
+    .passed-items-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      flex: 1;
+    }
+    .target-badge {
+      background: #FFFDF0;
+      border: 2px solid #FED330;
+      border-radius: 12px;
+      padding: 4px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: clamp(14px, 2.2vh, 18px);
+      font-weight: 900;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      animation: popBadge 0.25s ease;
+    }
+    @keyframes popBadge {
+      0% { transform: scale(0.6); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .target-img {
+      width: clamp(50px, 7.5vh, 72px);
+      height: clamp(50px, 7.5vh, 72px);
+      object-fit: contain;
+    }
+    .empty-mission-placeholder {
+      color: #94A3B8;
+      font-size: clamp(14px, 2.2vh, 17px);
+      font-weight: 900;
+    }
+
+    /* 🎮 하단 조작 버튼군 */
+    .action-controls-row {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr 1fr;
+      gap: 10px;
+      width: 100%;
+      flex-shrink: 0;
+      height: clamp(38px, 5.8vh, 46px);
+    }
+    .btn-act {
+      appearance: none;
+      border: none;
+      border-radius: 10px;
+      font-size: clamp(13px, 2.1vh, 16px);
+      font-weight: 900;
+      cursor: pointer;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+      transition: transform 0.08s ease;
+    }
+    .btn-act:active {
+      transform: scale(0.95);
+    }
+    .btn-reset-filters {
+      background: linear-gradient(135deg, #64748b, #475569);
+    }
+    .btn-run-check {
+      background: linear-gradient(135deg, #10ac84, #1dd1a1);
+    }
+    .btn-next-prob {
+      background: linear-gradient(135deg, #ff793f, #ff5252);
+    }
+
+    /* 🎬 실시간 분류 애니메이션 시어터 (원인 태그 수용 디자인) */
+    .anim-theater {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(4px);
+      border-radius: 16px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .anim-theater.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .anim-header {
+      font-size: 16px;
+      font-weight: 900;
+      color: #FED330;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      margin-top: 2px;
+    }
+    .anim-chute {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      flex: 1;
+      overflow-x: auto;
+    }
+    .scan-card {
+      background: #FFFFFF;
+      border: 3px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 4px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      min-width: 84px;
+      max-width: 98px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .scan-card img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+    .scan-card .name {
+      font-size: 13px;
+      font-weight: 900;
+      color: #1e293b;
+    }
+    .scan-badge {
+      font-size: 11px;
+      font-weight: 900;
+      padding: 1px 6px;
+      border-radius: 999px;
+      display: none;
+    }
+    /* 🔥 탈락 사유 태그 */
+    .scan-reason {
+      font-size: 10px;
+      font-weight: 900;
+      color: #d63031;
+      background: #ffebee;
+      border: 1px solid #ff7675;
+      border-radius: 6px;
+      padding: 2px 4px;
+      line-height: 1.15;
+      text-align: center;
+      word-break: keep-all;
+      display: none;
+      margin-top: 1px;
+      width: 100%;
+    }
+    .scan-card.passed {
+      border-color: #10ac84;
+      background: #e8f8f5;
+      transform: translateY(12px) scale(1.06);
+      box-shadow: 0 8px 18px rgba(16, 172, 132, 0.4);
+    }
+    .scan-card.passed .scan-badge {
+      display: block;
+      background: #10ac84;
+      color: #FFFFFF;
+    }
+    .scan-card.rejected {
+      border-color: #ff4757;
+      background: #fff0f1;
+      opacity: 0.75;
+      transform: translateY(-8px) scale(0.94);
+    }
+    .scan-card.rejected .scan-badge {
+      display: block;
+      background: #ff4757;
+      color: #FFFFFF;
+    }
+    .scan-card.rejected .scan-reason {
+      display: block;
+    }
+
+    /* 팝업 오버레이 */
+    .popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 15, 30, 0.45);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .popup-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .popup-img {
+      max-width: min(80vw, 420px);
+      max-height: 50vh;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 24px rgba(0,0,0,0.3));
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.4); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .popup-banner {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 16px 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      animation: popIn 0.3s ease;
+      max-width: 90%;
+      text-align: center;
+    }
+    .popup-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #1e293b;
+    }
+    .popup-desc {
+      font-size: 16px;
+      color: #475569;
+      font-weight: bold;
+    }
+    .btn-popup-close {
+      appearance: none;
+      border: none;
+      background: linear-gradient(135deg, #10ac84, #1dd1a1);
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 900;
+      padding: 8px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(16, 172, 132, 0.3);
+      margin-top: 6px;
+    }
+    .btn-popup-close:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="stage">
+    
+    <!-- 🏫 최상단 타이틀 & 깔끔한 1~5단계 난이도 탭 -->
+    <div class="top-bar">
+      <div class="game-title">🤖 속성 분류기</div>
+      <div class="level-tabs">
+        <button class="level-btn" onclick="selectStage(1)">1단계</button>
+        <button class="level-btn" onclick="selectStage(2)">2단계</button>
+        <button class="level-btn" onclick="selectStage(3)">3단계</button>
+        <button class="level-btn" onclick="selectStage(4)">4단계</button>
+        <button class="level-btn" onclick="selectStage(5)">5단계</button>
+      </div>
+    </div>
+
+    <!-- 📋 들어가는 후보 캐릭터 7종 -->
+    <div class="pool-card">
+      <div class="pool-label">📥 들어가는 친구들:</div>
+      <div class="pool-items" id="poolItemsList"></div>
+    </div>
+
+    <!-- 🤖 중앙 분류기 머신 -->
+    <div class="machine-wrapper">
+      <div class="machine-frame">
+        <svg class="machine-svg-bg" viewBox="0 0 720 250" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="funnelGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#4a8bd6" />
+              <stop offset="100%" stop-color="#3b76bd" />
+            </linearGradient>
+            <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6fa2e0" />
+              <stop offset="100%" stop-color="#4d86c4" />
+            </linearGradient>
+            <filter id="mShadow" x="-5%" y="-5%" width="110%" height="115%">
+              <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.12" />
+            </filter>
+          </defs>
+
+          <!-- 상단 깔때기 -->
+          <polygon points="260,0 460,0 420,24 300,24" fill="url(#funnelGrad)" stroke="#2b5991" stroke-width="3" filter="url(#mShadow)"/>
+          <ellipse cx="360" cy="3" rx="100" ry="4" fill="#8bc2ff" opacity="0.6"/>
+
+          <!-- 하단 깔때기 -->
+          <polygon points="300,224 420,224 460,250 260,250" fill="url(#funnelGrad)" stroke="#2b5991" stroke-width="3" filter="url(#mShadow)"/>
+          <ellipse cx="360" cy="247" rx="98" ry="4" fill="#244877"/>
+
+          <!-- 본체 박스 -->
+          <rect x="25" y="22" width="670" height="204" rx="24" fill="url(#bodyGrad)" stroke="#2f629c" stroke-width="5" filter="url(#mShadow)"/>
+        </svg>
+
+        <!-- 화면 내부: 속성 아이콘과 OX 버튼 -->
+        <div class="machine-screen-content">
+          <!-- 1. 동물 -->
+          <div class="attr-column" data-attr="animal">
+            <div class="attr-icon-box">
+              <img src="./attr_animal.png" class="attr-icon-img" alt="동물" onerror="handleImgError(this, '🐭')"/>
+              <span class="attr-fallback-emoji">🐭</span>
+            </div>
+            <div class="attr-label">동물</div>
+            <div class="ox-btn-group">
+              <button class="ox-btn btn-o" onclick="toggleAttr('animal', 'O')">O</button>
+              <button class="ox-btn btn-x" onclick="toggleAttr('animal', 'X')">X</button>
+            </div>
+          </div>
+
+          <!-- 2. 줄무늬 -->
+          <div class="attr-column" data-attr="stripe">
+            <div class="attr-icon-box">
+              <img src="./attr_stripe.png" class="attr-icon-img" alt="줄무늬" onerror="handleImgError(this, '🦓')"/>
+              <span class="attr-fallback-emoji">🦓</span>
+            </div>
+            <div class="attr-label">줄무늬</div>
+            <div class="ox-btn-group">
+              <button class="ox-btn btn-o" onclick="toggleAttr('stripe', 'O')">O</button>
+              <button class="ox-btn btn-x" onclick="toggleAttr('stripe', 'X')">X</button>
+            </div>
+          </div>
+
+          <!-- 3. 육식 -->
+          <div class="attr-column" data-attr="meat">
+            <div class="attr-icon-box">
+              <img src="./attr_meat.png" class="attr-icon-img" alt="육식" onerror="handleImgError(this, '🍖')"/>
+              <span class="attr-fallback-emoji">🍖</span>
+            </div>
+            <div class="attr-label">육식</div>
+            <div class="ox-btn-group">
+              <button class="ox-btn btn-o" onclick="toggleAttr('meat', 'O')">O</button>
+              <button class="ox-btn btn-x" onclick="toggleAttr('meat', 'X')">X</button>
+            </div>
+          </div>
+
+          <!-- 4. 날개 -->
+          <div class="attr-column" data-attr="wing">
+            <div class="attr-icon-box">
+              <img src="./attr_wing.png" class="attr-icon-img" alt="날개" onerror="handleImgError(this, '🪽')"/>
+              <span class="attr-fallback-emoji">🪽</span>
+            </div>
+            <div class="attr-label">날개</div>
+            <div class="ox-btn-group">
+              <button class="ox-btn btn-o" onclick="toggleAttr('wing', 'O')">O</button>
+              <button class="ox-btn btn-x" onclick="toggleAttr('wing', 'X')">X</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎬 실시간 분류 애니메이션 시어터 레이어 -->
+        <div class="anim-theater" id="animTheater">
+          <div class="anim-header">🔍 친구들이 분류기를 통과하고 있어요!</div>
+          <div class="anim-chute" id="animChute"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🎯 하단 통과된 친구들 (목표 패널) -->
+    <div class="mission-card">
+      <div class="mission-header-row">
+        <div class="mission-title">🎯 통과되어 나온 친구들:</div>
+        <div class="answer-counter-badge" id="answerCounter">대기 중</div>
+      </div>
+      <div class="passed-items-row" id="passedItemsRow">
+        <span class="empty-mission-placeholder">👆 [🚀 문제 시작] 버튼을 눌러 문제를 출제하세요!</span>
+      </div>
+    </div>
+
+    <!-- 🎮 하단 조작 버튼군 -->
+    <div class="action-controls-row">
+      <button class="btn-act btn-reset-filters" onclick="resetFilters()">🔄 조건 비우기</button>
+      <button class="btn-act btn-run-check" id="btnRunCheck" onclick="checkAnswer()">⚡ 분류기 작동 (정답 확인)</button>
+      <button class="btn-act btn-next-prob" id="btnMainTrigger" onclick="handleMainTrigger()">🚀 문제 시작</button>
+    </div>
+
+  </div>
+
+  <!-- 팝업: success.png (개별 정답 성공) -->
+  <div class="popup-overlay" id="successOverlay" onclick="closeSuccessOverlay()">
+    <img src="./success.png" class="popup-img" alt="Success" onerror="showPopupFallback(this, '🎉 정답입니다!', '설정한 조건으로 정확하게 통과되었어요!')" />
+  </div>
+
+  <!-- 팝업: tryagain.png (오답) -->
+  <div class="popup-overlay" id="tryOverlay" onclick="closeTryOverlay()">
+    <img src="./tryagain.png" class="popup-img" alt="Try Again" onerror="showPopupFallback(this, '🔄 다시 해보세요!', '지금 조건으로는 다른 친구들이 나와요.')" />
+  </div>
+
+  <!-- 팝업: pass.png (모든 정답 조합 완료) -->
+  <div class="popup-overlay" id="passOverlay">
+    <img src="./pass.png" class="popup-img" id="passImg" alt="Pass" onerror="showPopupFallback(this, '🏆 미션 완전 정복!', '이 문제의 모든 정답 조건을 모두 찾았습니다!')" />
+    <button class="btn-popup-close" onclick="closePassAndNext()">다음 문제로 이동 🚀</button>
+  </div>
+
+<script>
+(() => {
+  // 1. 분류 대상 캐릭터 7종 정의 (독수리: 동물, 육식, 날개)
+  const ITEMS = [
+    { id: 'tiger',     name: '호랑이', emoji: '🐯', file: 'tiger.png',     attrs: { animal: true,  stripe: true,  meat: true,  wing: false } },
+    { id: 'plane',     name: '비행기', emoji: '✈️', file: 'plane.png',     attrs: { animal: false, stripe: false, meat: false, wing: true  } },
+    { id: 'elephant',  name: '코끼리', emoji: '🐘', file: 'elephant.png',  attrs: { animal: true,  stripe: false, meat: false, wing: false } },
+    { id: 'butterfly', name: '나비',   emoji: '🦋', file: 'butterfly.png', attrs: { animal: true,  stripe: true,  meat: false, wing: true  } },
+    { id: 'lion',      name: '사자',   emoji: '🦁', file: 'lion.png',      attrs: { animal: true,  stripe: false, meat: true,  wing: false } },
+    { id: 'zebra',     name: '얼룩말', emoji: '🦓', file: 'zebra.png',     attrs: { animal: true,  stripe: true,  meat: false, wing: false } },
+    { id: 'eagle',     name: '독수리', emoji: '🦅', file: 'eagle.png',     attrs: { animal: true,  stripe: false, meat: true,  wing: true  } }
+  ];
+
+  const ATTRS = ['animal', 'stripe', 'meat', 'wing'];
+  const ATTR_NAMES = { animal: '동물', stripe: '줄무늬', meat: '육식', wing: '날개' };
+
+  const S = {
+    selectedStage: 1,
+    currentProblem: null,
+    userFilter: { animal: null, stripe: null, meat: null, wing: null },
+    foundSolutions: new Set(),
+    isBusy: false
+  };
+
+  function getPassedItems(filterObj) {
+    return ITEMS.filter(item => {
+      for (const a of ATTRS) {
+        if (filterObj[a] === 'O' && !item.attrs[a]) return false;
+        if (filterObj[a] === 'X' && item.attrs[a]) return false;
+      }
+      return true;
+    });
+  }
+
+  function filterToKey(f) {
+    return ATTRS.map(a => `${a}:${f[a] || 'none'}`).join('|');
+  }
+
+  function buildDatabase() {
+    const vals = [null, 'O', 'X'];
+    const map = new Map();
+
+    for (const a of vals) {
+      for (const s of vals) {
+        for (const m of vals) {
+          for (const w of vals) {
+            const f = { animal: a, stripe: s, meat: m, wing: w };
+            const passed = getPassedItems(f);
+            
+            if (passed.length > 0 && passed.length < ITEMS.length) {
+              const ids = passed.map(it => it.id).sort().join(',');
+              if (!map.has(ids)) {
+                map.set(ids, {
+                  ids: passed.map(it => it.id),
+                  items: passed,
+                  validFilters: []
+                });
+              }
+              map.get(ids).validFilters.push(f);
+            }
+          }
+        }
+      }
+    }
+
+    const stageMap = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+
+    for (const prob of map.values()) {
+      const filters = prob.validFilters;
+      let minO = 99, minX = 99;
+      let hasPureO = false, hasPureX = false;
+
+      for (const f of filters) {
+        let cntO = 0, cntX = 0;
+        for (const a of ATTRS) {
+          if (f[a] === 'O') cntO++;
+          if (f[a] === 'X') cntX++;
+        }
+        if (cntX === 0 && cntO > 0) {
+          hasPureO = true;
+          if (cntO < minO) minO = cntO;
+        }
+        if (cntO === 0 && cntX > 0) {
+          hasPureX = true;
+          if (cntX < minX) minX = cntX;
+        }
+      }
+
+      if (hasPureO && minO === 1) {
+        stageMap[1].push(prob);
+      } else if (hasPureO && minO === 2) {
+        stageMap[2].push(prob);
+      } else if (hasPureX && minX === 1) {
+        stageMap[3].push(prob);
+      } else if (hasPureX && minX >= 2) {
+        stageMap[4].push(prob);
+      } else {
+        stageMap[5].push(prob);
+      }
+    }
+
+    return stageMap;
+  }
+
+  const STAGE_DATABASE = buildDatabase();
+
+  function initPool() {
+    const list = document.getElementById('poolItemsList');
+    list.innerHTML = ITEMS.map(it => `
+      <div class="pool-item-chip">
+        <img src="./${it.file}" class="pool-item-img" alt="${it.name}" onerror="handleImgError(this, '${it.emoji}')" />
+        <span class="attr-fallback-emoji">${it.emoji}</span>
+        <span>${it.name}</span>
+      </div>
+    `).join('');
+  }
+
+  window.handleImgError = (img, emoji) => {
+    img.style.display = 'none';
+    const fallback = img.nextElementSibling;
+    if (fallback) fallback.style.display = 'inline-block';
+  };
+
+  window.showPopupFallback = (img, title, desc) => {
+    img.style.display = 'none';
+    let banner = img.parentElement.querySelector('.popup-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.className = 'popup-banner';
+      banner.innerHTML = `
+        <div class="popup-title">${title}</div>
+        <div class="popup-desc">${desc}</div>
+      `;
+      img.parentElement.insertBefore(banner, img.parentElement.firstChild);
+    }
+  };
+
+  window.selectStage = (lvl) => {
+    S.selectedStage = lvl;
+    document.querySelectorAll('.level-btn').forEach((b, i) => {
+      b.classList.toggle('active', i + 1 === lvl);
+    });
+    loadNewProblem();
+  };
+
+  function updateButtonUI() {
+    for (const a of ATTRS) {
+      const col = document.querySelector(`.attr-column[data-attr="${a}"]`);
+      const btnO = col.querySelector('.btn-o');
+      const btnX = col.querySelector('.btn-x');
+
+      btnO.classList.toggle('active', S.userFilter[a] === 'O');
+      btnX.classList.toggle('active', S.userFilter[a] === 'X');
+    }
+  }
+
+  window.toggleAttr = (attr, type) => {
+    if (S.isBusy) return;
+    if (S.userFilter[attr] === type) {
+      S.userFilter[attr] = null;
+    } else {
+      S.userFilter[attr] = type;
+    }
+    updateButtonUI();
+  };
+
+  window.resetFilters = () => {
+    if (S.isBusy) return;
+    S.userFilter = { animal: null, stripe: null, meat: null, wing: null };
+    updateButtonUI();
+  };
+
+  function renderMissionView() {
+    const row = document.getElementById('passedItemsRow');
+    const counter = document.getElementById('answerCounter');
+
+    if (!S.currentProblem) {
+      row.innerHTML = '<span class="empty-mission-placeholder">👆 [🚀 문제 시작] 버튼을 눌러 문제를 출제하세요!</span>';
+      counter.textContent = '대기 중';
+      document.getElementById('btnMainTrigger').textContent = '🚀 문제 시작';
+      return;
+    }
+
+    document.getElementById('btnMainTrigger').textContent = '🎲 다른 문제';
+    row.innerHTML = S.currentProblem.items.map(it => `
+      <div class="target-badge">
+        <img src="./${it.file}" class="target-img" alt="${it.name}" onerror="handleImgError(this, '${it.emoji}')" />
+        <span class="attr-fallback-emoji">${it.emoji}</span>
+        <span>${it.name}</span>
+      </div>
+    `).join('');
+
+    const total = S.currentProblem.validFilters.length;
+    const found = S.foundSolutions.size;
+    counter.textContent = `찾은 정답: ${found} / ${total}`;
+  }
+
+  function loadNewProblem() {
+    const list = STAGE_DATABASE[S.selectedStage];
+    if (!list || list.length === 0) return;
+
+    let next;
+    let attempts = 0;
+    do {
+      next = list[Math.floor(Math.random() * list.length)];
+      attempts++;
+    } while (S.currentProblem && next.ids.join(',') === S.currentProblem.ids.join(',') && attempts < 20);
+
+    S.currentProblem = next;
+    S.foundSolutions.clear();
+    resetFilters();
+    renderMissionView();
+  }
+
+  window.handleMainTrigger = () => {
+    if (S.isBusy) return;
+    loadNewProblem();
+  };
+
+  // 🎬 실시간 분류 애니메이션 (2배 느리게 + 탈락 사유 표기 + 검사 완료 후 3초 유지)
+  window.checkAnswer = () => {
+    if (S.isBusy) return;
+    if (!S.currentProblem) {
+      alert("먼저 [🚀 문제 시작] 버튼을 눌러 문제를 출제해주세요!");
+      return;
+    }
+
+    S.isBusy = true;
+    const theater = document.getElementById('animTheater');
+    const chute = document.getElementById('animChute');
+    
+    chute.innerHTML = ITEMS.map((it, idx) => `
+      <div class="scan-card" id="scanCard_${idx}">
+        <img src="./${it.file}" alt="${it.name}" onerror="handleImgError(this, '${it.emoji}')" />
+        <span class="attr-fallback-emoji">${it.emoji}</span>
+        <div class="name">${it.name}</div>
+        <div class="scan-badge" id="scanBadge_${idx}">대기</div>
+        <div class="scan-reason" id="scanReason_${idx}"></div>
+      </div>
+    `).join('');
+
+    theater.classList.add('show');
+
+    let currentIdx = 0;
+    const passedList = [];
+
+    function processNext() {
+      if (currentIdx < ITEMS.length) {
+        const item = ITEMS[currentIdx];
+        const card = document.getElementById(`scanCard_${currentIdx}`);
+        const badge = document.getElementById(`scanBadge_${currentIdx}`);
+        const reasonEl = document.getElementById(`scanReason_${currentIdx}`);
+
+        const failReasons = [];
+
+        // 설정된 조건과 동물의 속성을 비교하여 통과 여부 및 탈락 사유 수집
+        for (const a of ATTRS) {
+          if (S.userFilter[a] === 'O' && !item.attrs[a]) {
+            failReasons.push(`${ATTR_NAMES[a]} 없음`);
+          }
+          if (S.userFilter[a] === 'X' && item.attrs[a]) {
+            failReasons.push(`${ATTR_NAMES[a]} 있음`);
+          }
+        }
+
+        const isPass = (failReasons.length === 0);
+
+        if (isPass) {
+          card.classList.add('passed');
+          badge.textContent = '통과 ⭕';
+          passedList.push(item);
+        } else {
+          card.classList.add('rejected');
+          badge.textContent = '탈락 ❌';
+          // 탈락 사유 표기
+          reasonEl.innerHTML = failReasons.join('<br>');
+        }
+
+        currentIdx++;
+        // 기존 260ms 대비 2배 느려진 520ms 간격으로 순차 진행
+        setTimeout(processNext, 520);
+      } else {
+        // 🔥 7마리 모든 탈락/통과 검사가 끝난 뒤 최종 화면을 3초(3000ms) 동안 유지!
+        setTimeout(() => {
+          theater.classList.remove('show');
+          evaluateFinalResult(passedList);
+          S.isBusy = false;
+        }, 3000);
+      }
+    }
+
+    setTimeout(processNext, 250);
+  };
+
+  // 🔥 결과 집합 일치 판정 (어떤 조합이든 결과만 맞으면 100% 정답!)
+  function evaluateFinalResult(passedItems) {
+    const passedIds = passedItems.map(it => it.id).sort().join(',');
+    const targetIds = S.currentProblem.ids.slice().sort().join(',');
+
+    const isMatch = (passedIds === targetIds);
+
+    if (isMatch) {
+      const curKey = filterToKey(S.userFilter);
+      const isNew = !S.foundSolutions.has(curKey);
+
+      if (isNew) {
+        S.foundSolutions.add(curKey);
+      }
+
+      renderMissionView();
+
+      const total = S.currentProblem.validFilters.length;
+      const found = S.foundSolutions.size;
+
+      if (found >= total) {
+        showPassOverlay();
+      } else {
+        showSuccessOverlay();
+      }
+    } else {
+      showTryOverlay();
+    }
+  }
+
+  function showSuccessOverlay() {
+    const el = document.getElementById('successOverlay');
+    el.classList.add('show');
+    setTimeout(() => {
+      closeSuccessOverlay();
+    }, 1400);
+  }
+
+  window.closeSuccessOverlay = () => {
+    document.getElementById('successOverlay').classList.remove('show');
+  };
+
+  function showTryOverlay() {
+    const el = document.getElementById('tryOverlay');
+    el.classList.add('show');
+    setTimeout(() => {
+      closeTryOverlay();
+    }, 1300);
+  }
+
+  window.closeTryOverlay = () => {
+    document.getElementById('tryOverlay').classList.remove('show');
+  };
+
+  function showPassOverlay() {
+    const el = document.getElementById('passOverlay');
+    el.classList.add('show');
+  }
+
+  window.closePassAndNext = () => {
+    document.getElementById('passOverlay').classList.remove('show');
+    loadNewProblem();
+  };
+
+  initPool();
+  S.selectedStage = 1;
+  document.querySelectorAll('.level-btn')[0].classList.add('active');
+  S.currentProblem = null;
+  renderMissionView();
+})();
+</script>
+</body>
+</html>
